@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SRM CGPA Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+/* ── TOKENS ── */
+:root {
+  --ink:       #0d0f14;
+  --ink-2:     #13161e;
+  --ink-3:     #1b1f2a;
+  --surface:   #202435;
+  --rule:      #2a2f3f;
+  --rule-2:    #353b50;
+  --text:      #e8ecf4;
+  --text-2:    #8892a8;
+  --text-3:    #4d556a;
+  --lime:      #b8f55a;
+  --lime-dim:  rgba(184,245,90,0.09);
+  --lime-mid:  rgba(184,245,90,0.18);
+  --blue:      #4f8ef7;
+  --blue-dim:  rgba(79,142,247,0.10);
+  --violet:    #9b7ff4;
+  --green:     #3dd68c;
+  --amber:     #f5a623;
+  --red:       #f4566c;
+  --mono:      'JetBrains Mono', monospace;
+  --sans:      'Space Grotesk', system-ui, sans-serif;
+  --r:         10px;
+  --r-sm:      6px;
+  --ease:      cubic-bezier(0.4,0,0.2,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--sans);
+  background: var(--ink);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── NOISE TEXTURE OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 0; opacity: 0.4;
+}
+
+/* ── LAYOUT ── */
+.wrap { max-width: 860px; margin: 0 auto; padding: 0 1.5rem; position: relative; z-index: 1; }
+section { margin-bottom: 3.5rem; }
+
+/* ── NAV ── */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(13,15,20,0.85);
+  backdrop-filter: blur(20px) saturate(160%);
+  border-bottom: 1px solid var(--rule);
+}
+.nav-inner {
+  max-width: 860px; margin: 0 auto; padding: 0 1.5rem;
+  height: 54px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.nav-brand {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 14px; font-weight: 600; color: var(--text);
+  text-decoration: none; letter-spacing: -0.01em;
+}
+.nav-logo {
+  width: 28px; height: 28px;
+  background: var(--lime);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+}
+.nav-logo svg { width: 14px; height: 14px; fill: none; stroke: #0d0f14; stroke-width: 2.3; stroke-linecap: round; }
+.nav-links { display: flex; align-items: center; gap: 2px; }
+.nav-link {
+  font-size: 13px; font-weight: 500; color: var(--text-2);
+  padding: 5px 11px; border-radius: var(--r-sm);
+  text-decoration: none; transition: color 0.15s var(--ease), background 0.15s var(--ease);
+}
+.nav-link:hover { color: var(--text); background: var(--ink-3); }
+
+/* ── HERO ── */
+.hero { padding: 5rem 0 4rem; position: relative; }
+
+/* glow blob */
+.hero-glow {
+  position: absolute; top: -60px; left: 50%;
+  transform: translateX(-50%);
+  width: 500px; height: 400px;
+  background: radial-gradient(ellipse at center, rgba(184,245,90,0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-kicker {
+  font-family: var(--mono);
+  font-size: 11px; font-weight: 500;
+  color: var(--lime);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 1.25rem;
+  display: flex; align-items: center; gap: 8px;
+}
+.hero-kicker::before {
+  content: '';
+  display: inline-block; width: 20px; height: 1px;
+  background: var(--lime); opacity: 0.6;
+}
+
+.hero h1 {
+  font-size: clamp(2.2rem, 5.5vw, 3.6rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  color: var(--text);
+  margin-bottom: 1.1rem;
+  max-width: 560px;
+}
+.hero h1 em {
+  font-style: normal;
+  color: var(--lime);
+}
+.hero-sub {
+  font-size: 1rem; color: var(--text-2);
+  max-width: 420px; line-height: 1.65;
+  margin-bottom: 2.25rem;
+}
+.hero-actions {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 20px;
+  border-radius: var(--r-sm);
+  font-size: 13.5px; font-weight: 600;
+  cursor: pointer; border: none;
+  font-family: var(--sans);
+  transition: all 0.18s var(--ease);
+  text-decoration: none; white-space: nowrap;
+}
+.btn-lime {
+  background: var(--lime); color: #0d0f14;
+  box-shadow: 0 0 0 0 rgba(184,245,90,0);
+}
+.btn-lime:hover {
+  background: #c5f76a;
+  box-shadow: 0 0 24px rgba(184,245,90,0.3);
+  transform: translateY(-1px);
+}
+.btn-lime:active { transform: translateY(0); }
+.btn-ghost {
+  background: var(--ink-3); color: var(--text-2);
+  border: 1px solid var(--rule-2);
+}
+.btn-ghost:hover { color: var(--text); background: var(--surface); border-color: var(--text-3); }
+.btn-sm { padding: 7px 14px; font-size: 13px; }
+.btn-danger {
+  background: transparent; color: var(--red);
+  border: 1px solid rgba(244,86,108,0.25);
+}
+.btn-danger:hover { background: rgba(244,86,108,0.08); border-color: rgba(244,86,108,0.4); }
+
+/* ── HERO STATS PREVIEW ── */
+.hero-preview {
+  margin-top: 3.5rem;
+  background: var(--ink-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  padding: 1.25rem;
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+  overflow: hidden;
+  position: relative;
+}
+.hero-preview::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--lime-mid), transparent);
+}
+.hp-stat {
+  padding: 1.1rem 1.25rem;
+  background: var(--ink-2);
+}
+.hp-stat + .hp-stat { border-left: 1px solid var(--rule); }
+.hp-label { font-family: var(--mono); font-size: 10px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+.hp-value { font-size: 2rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
+.hp-value.c-lime  { color: var(--lime); }
+.hp-value.c-blue  { color: var(--blue); }
+.hp-value.c-text  { color: var(--text); }
+.hp-bar { height: 2px; background: var(--rule); border-radius: 20px; margin-top: 10px; overflow: hidden; }
+.hp-fill { height: 100%; border-radius: 20px; transition: width 0.6s var(--ease); }
+
+/* ── SECTION HEADERS ── */
+.sec-head { margin-bottom: 1.25rem; }
+.sec-tag {
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  color: var(--text-3); text-transform: uppercase; letter-spacing: 0.12em;
+  margin-bottom: 5px;
+}
+.sec-title { font-size: 1.2rem; font-weight: 700; color: var(--text); letter-spacing: -0.025em; }
+.sec-desc { font-size: 13.5px; color: var(--text-2); margin-top: 3px; }
+
+/* ── PANELS ── */
+.panel {
+  background: var(--ink-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.panel-bar {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--rule);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.panel-bar-left { display: flex; align-items: center; gap: 10px; }
+.picon {
+  width: 32px; height: 32px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.picon svg { width: 15px; height: 15px; }
+.picon.lime   { background: var(--lime-dim);  color: var(--lime); }
+.picon.blue   { background: var(--blue-dim);  color: var(--blue); }
+.picon.violet { background: rgba(155,127,244,0.10); color: var(--violet); }
+.picon.green  { background: rgba(61,214,140,0.10);  color: var(--green); }
+.picon.amber  { background: rgba(245,166,35,0.08);  color: var(--amber); }
+.p-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.p-sub { font-size: 12px; color: var(--text-3); margin-top: 1px; }
+.panel-body { padding: 1.25rem; }
+
+/* ── GRADE CHIPS ── */
+.grade-strip {
+  display: flex; flex-wrap: wrap; gap: 5px;
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid var(--rule);
+  background: var(--ink);
+}
+.gchip {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 9px;
+  border-radius: 4px;
+  border: 1px solid var(--rule-2);
+  background: var(--ink-2);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.gchip .gl { font-weight: 600; color: var(--text); }
+.gchip .gp { color: var(--lime); }
+
+/* ── FORM ELEMENTS ── */
+.input, .select {
+  width: 100%;
+  padding: 8px 11px;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  color: var(--text);
+  background: var(--ink-3);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-sm);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  -webkit-appearance: none;
+}
+.input::placeholder { color: var(--text-3); }
+.input:hover, .select:hover { border-color: var(--rule-2); }
+.input:focus, .select:focus {
+  border-color: var(--lime);
+  box-shadow: 0 0 0 3px var(--lime-dim);
+}
+.select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%234d556a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+.label { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--text-3); display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.06em; }
+.form-group { display: flex; flex-direction: column; }
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+input[type=number] { -moz-appearance: textfield; }
+
+/* ── COL HEADERS ── */
+.col-headers {
+  display: grid;
+  gap: 8px; padding: 0 4px;
+  margin-bottom: 7px;
+}
+.col-headers span {
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em;
+}
+
+/* ── SUBJECT ROWS ── */
+.subject-list { display: flex; flex-direction: column; gap: 6px; }
+.subject-row {
+  display: grid;
+  grid-template-columns: 1fr 72px 110px 30px;
+  gap: 8px; align-items: center;
+  padding: 9px 10px;
+  background: var(--ink-3);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-sm);
+  transition: border-color 0.15s;
+  animation: rowIn 0.2s var(--ease);
+}
+.subject-row:hover { border-color: var(--rule-2); }
+@keyframes rowIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ── SEMESTER ROWS ── */
+.semester-list { display: flex; flex-direction: column; gap: 6px; }
+.semester-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 80px 30px;
+  gap: 8px; align-items: center;
+  padding: 9px 10px;
+  background: var(--ink-3);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-sm);
+  transition: border-color 0.15s;
+  animation: rowIn 0.2s var(--ease);
+}
+.semester-row:hover { border-color: var(--rule-2); }
+.sem-label {
+  font-family: var(--mono); font-size: 12px; font-weight: 500;
+  color: var(--text-3); text-align: center; letter-spacing: 0.04em;
+  padding: 8px 0;
+}
+
+/* ── REMOVE BTN ── */
+.rm-btn {
+  width: 28px; height: 28px;
+  border: none; background: none;
+  border-radius: 5px; cursor: pointer;
+  color: var(--text-3);
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.rm-btn:hover { background: rgba(244,86,108,0.10); color: var(--red); }
+.rm-btn svg { width: 13px; height: 13px; }
+
+/* ── DIVIDER ── */
+.divider { height: 1px; background: var(--rule); margin: 1.1rem 0; }
+
+/* ── ACTIONS ROW ── */
+.actions {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 1.1rem;
+}
+.actions .ml { margin-left: auto; }
+
+/* ── RESULT PANEL ── */
+.result {
+  margin-top: 1.1rem;
+  background: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  display: none;
+  animation: fadeUp 0.25s var(--ease);
+}
+.result.on { display: block; }
+.result-top {
+  padding: 1rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--rule);
+}
+.result-top.lt { border-left: 3px solid var(--lime); }
+.result-top.bt { border-left: 3px solid var(--blue); }
+.result-top.vt { border-left: 3px solid var(--violet); }
+.r-label { font-family: var(--mono); font-size: 10px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 5px; }
+.r-value { font-size: 2.6rem; font-weight: 700; letter-spacing: -0.05em; line-height: 1; }
+.r-value.lime   { color: var(--lime); }
+.r-value.blue   { color: var(--blue); }
+.r-value.violet { color: var(--violet); }
+.r-meta { font-size: 12px; color: var(--text-2); }
+.r-rating { font-size: 12.5px; font-weight: 600; margin-top: 3px; }
+.r-rating.lime   { color: var(--lime); }
+.r-rating.blue   { color: var(--blue); }
+
+/* breakdown table */
+.r-breakdown { padding: 0.875rem 1.25rem; }
+.r-bd-title { font-family: var(--mono); font-size: 10px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+.bd-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 5px 0; border-bottom: 1px solid var(--rule);
+  font-size: 13px;
+}
+.bd-row:last-child { border-bottom: none; }
+.bd-name { flex: 1; color: var(--text-2); }
+.bd-pts { font-family: var(--mono); font-weight: 500; color: var(--text); min-width: 28px; text-align: center; }
+.bd-bar-w { flex: 1.2; height: 3px; background: var(--rule); border-radius: 20px; overflow: hidden; }
+.bd-bar-f { height: 100%; border-radius: 20px; background: var(--lime); }
+.bd-cred { font-family: var(--mono); font-size: 11.5px; color: var(--text-3); min-width: 54px; text-align: right; }
+
+/* progress row */
+.r-prog { padding: 0.875rem 1.25rem; border-top: 1px solid var(--rule); }
+.prog-hdr { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--text-3); margin-bottom: 6px; }
+.prog-bg { height: 4px; background: var(--rule); border-radius: 20px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 20px; transition: width 0.6s var(--ease); }
+
+/* ── PREDICTOR GRID ── */
+.pred-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 480px) { .pred-grid { grid-template-columns: 1fr; } }
+
+/* ── STATS GRID ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+  gap: 10px;
+}
+.scard {
+  background: var(--ink-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  padding: 1.25rem;
+  transition: border-color 0.2s, transform 0.2s;
+  position: relative; overflow: hidden;
+}
+.scard::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+}
+.scard.lime::before  { background: linear-gradient(90deg, var(--lime), transparent); }
+.scard.blue::before  { background: linear-gradient(90deg, var(--blue), transparent); }
+.scard.violet::before { background: linear-gradient(90deg, var(--violet), transparent); }
+.scard.amber::before { background: linear-gradient(90deg, var(--amber), transparent); }
+.scard:hover { border-color: var(--rule-2); transform: translateY(-2px); }
+.scard-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+}
+.scard-icon svg { width: 16px; height: 16px; }
+.scard-icon.lime   { background: var(--lime-dim);  color: var(--lime); }
+.scard-icon.blue   { background: var(--blue-dim);  color: var(--blue); }
+.scard-icon.violet { background: rgba(155,127,244,0.10); color: var(--violet); }
+.scard-icon.amber  { background: rgba(245,166,35,0.08);  color: var(--amber); }
+.scard-val { font-size: 2rem; font-weight: 700; color: var(--text); letter-spacing: -0.04em; line-height: 1; margin-bottom: 3px; }
+.scard-label { font-size: 13px; color: var(--text-2); font-weight: 500; }
+.scard-sub { font-family: var(--mono); font-size: 10.5px; color: var(--text-3); margin-top: 5px; }
+
+/* ── EMPTY STATE ── */
+.empty {
+  text-align: center; padding: 2rem 1rem;
+  color: var(--text-3); font-size: 13px;
+}
+.empty svg { width: 32px; height: 32px; margin-bottom: 10px; opacity: 0.3; }
+
+/* ── TOAST ── */
+#toast {
+  position: fixed; bottom: 1.5rem; left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: var(--text); color: var(--ink);
+  padding: 9px 18px; border-radius: 100px;
+  font-family: var(--mono); font-size: 12.5px; font-weight: 500;
+  z-index: 999; opacity: 0;
+  transition: all 0.25s var(--ease);
+  white-space: nowrap; pointer-events: none;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+#toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── FOOTER ── */
+footer {
+  border-top: 1px solid var(--rule);
+  padding: 1.75rem 0;
+  margin-top: 0.5rem;
+}
+.foot-inner {
+  max-width: 860px; margin: 0 auto; padding: 0 1.5rem;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px;
+}
+.foot-l { font-family: var(--mono); font-size: 12px; color: var(--text-3); }
+.foot-l a { color: var(--text-2); text-decoration: none; }
+.foot-l a:hover { color: var(--text); }
+.foot-r { display: flex; align-items: center; gap: 10px; }
+.foot-link {
+  display: flex; align-items: center; gap: 5px;
+  font-family: var(--mono); font-size: 12px; color: var(--text-3);
+  text-decoration: none; transition: color 0.15s;
+}
+.foot-link:hover { color: var(--text-2); }
+.foot-link svg { width: 13px; height: 13px; }
+.ver { font-family: var(--mono); font-size: 11px; padding: 2px 8px; background: var(--ink-3); color: var(--text-3); border-radius: 20px; border: 1px solid var(--rule); }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 600px) {
+  .hero { padding: 3.5rem 0 3rem; }
+  .hero h1 { font-size: 2rem; }
+  .hero-preview { grid-template-columns: 1fr 1fr; }
+  .hero-preview .hp-stat:last-child { display: none; }
+  .nav-links { display: none; }
+  .subject-row { grid-template-columns: 1fr 64px 96px 28px; }
+  .semester-row { grid-template-columns: 68px 1fr 68px 28px; }
+  .foot-inner { flex-direction: column; align-items: flex-start; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="nav-brand">
+      <div class="nav-logo">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      SRM Calc
+    </a>
+    <div class="nav-links">
+      <a href="#sgpa" class="nav-link">SGPA</a>
+      <a href="#cgpa" class="nav-link">CGPA</a>
+      <a href="#predictor" class="nav-link">Predictor</a>
+      <a href="#stats" class="nav-link">Stats</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero wrap">
+  <div class="hero-glow"></div>
+  <div class="hero-kicker">SRM KTR · Academic Tool</div>
+  <h1>Track your <em>CGPA</em><br>the right way.</h1>
+  <p class="hero-sub">Compute semester GPA, cumulative GPA, and predict where you'll land — no spreadsheet needed.</p>
+  <div class="hero-actions">
+    <a href="#sgpa" class="btn btn-lime">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+      Start calculating
+    </a>
+    <a href="#stats" class="btn btn-ghost">View stats</a>
+  </div>
+
+  <div class="hero-preview">
+    <div class="hp-stat">
+      <div class="hp-label">CGPA</div>
+      <div class="hp-value c-lime" id="heroCGPA">—</div>
+      <div class="hp-bar"><div class="hp-fill" id="heroCGPABar" style="width:0%;background:var(--lime)"></div></div>
+    </div>
+    <div class="hp-stat">
+      <div class="hp-label">SGPA</div>
+      <div class="hp-value c-blue" id="heroSGPA">—</div>
+      <div class="hp-bar"><div class="hp-fill" id="heroSGPABar" style="width:0%;background:var(--blue)"></div></div>
+    </div>
+    <div class="hp-stat">
+      <div class="hp-label">Credits</div>
+      <div class="hp-value c-text" id="heroCredits">0</div>
+      <div class="hp-bar"><div class="hp-fill" id="heroCreditsBar" style="width:0%;background:var(--violet)"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- SGPA -->
+<section id="sgpa" class="wrap">
+  <div class="sec-head">
+    <div class="sec-tag">Step 01</div>
+    <div class="sec-title">SGPA Calculator</div>
+    <div class="sec-desc">Add subjects with credit weights and grade letters for this semester.</div>
+  </div>
+
+  <div class="panel">
+    <div class="grade-strip">
+      <div class="gchip"><span class="gl">O</span><span class="gp">10</span></div>
+      <div class="gchip"><span class="gl">A+</span><span class="gp">9</span></div>
+      <div class="gchip"><span class="gl">A</span><span class="gp">8</span></div>
+      <div class="gchip"><span class="gl">B+</span><span class="gp">7</span></div>
+      <div class="gchip"><span class="gl">B</span><span class="gp">6</span></div>
+      <div class="gchip"><span class="gl">C</span><span class="gp">5</span></div>
+      <div class="gchip"><span class="gl">F</span><span class="gp">0</span></div>
+    </div>
+
+    <div class="panel-body">
+      <div class="col-headers" style="grid-template-columns:1fr 72px 110px 30px">
+        <span>Subject name</span>
+        <span>Credits</span>
+        <span>Grade</span>
+        <span></span>
+      </div>
+      <div class="subject-list" id="subjectList"></div>
+      <div class="actions">
+        <button class="btn btn-ghost btn-sm" onclick="addSubject()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add subject
+        </button>
+        <button class="btn btn-lime btn-sm" onclick="calculateSGPA()">Calculate SGPA</button>
+        <button class="btn btn-danger btn-sm ml" onclick="clearSGPA()">Clear</button>
+      </div>
+
+      <div class="result" id="sgpaResult">
+        <div class="result-top lt">
+          <div>
+            <div class="r-label">Semester GPA</div>
+            <div class="r-value lime" id="sgpaValue">—</div>
+          </div>
+          <div style="text-align:right">
+            <div class="r-meta" id="sgpaCredits"></div>
+            <div class="r-rating lime" id="sgpaRating"></div>
+          </div>
+        </div>
+        <div class="r-breakdown" id="sgpaBreakdown"></div>
+        <div class="r-prog">
+          <div class="prog-hdr"><span>Performance</span><span id="sgpaPct"></span></div>
+          <div class="prog-bg"><div class="prog-fill" id="sgpaBar" style="background:var(--lime)"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CGPA -->
+<section id="cgpa" class="wrap">
+  <div class="sec-head">
+    <div class="sec-tag">Step 02</div>
+    <div class="sec-title">CGPA Calculator</div>
+    <div class="sec-desc">Enter SGPA for each completed semester to get your cumulative average.</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-body">
+      <div class="col-headers" style="grid-template-columns:80px 1fr 80px 30px">
+        <span>Semester</span>
+        <span>Note</span>
+        <span style="text-align:center">SGPA</span>
+        <span></span>
+      </div>
+      <div class="semester-list" id="semesterList"></div>
+      <div class="actions">
+        <button class="btn btn-ghost btn-sm" onclick="addSemester()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add semester
+        </button>
+        <button class="btn btn-lime btn-sm" onclick="calculateCGPA()">Calculate CGPA</button>
+        <button class="btn btn-danger btn-sm ml" onclick="clearCGPA()">Clear</button>
+      </div>
+
+      <div class="result" id="cgpaResult">
+        <div class="result-top bt">
+          <div>
+            <div class="r-label">Cumulative GPA</div>
+            <div class="r-value blue" id="cgpaValue">—</div>
+          </div>
+          <div style="text-align:right">
+            <div class="r-meta" id="cgpaSemesters"></div>
+            <div class="r-rating blue" id="cgpaRating"></div>
+          </div>
+        </div>
+        <div class="r-breakdown" id="cgpaBreakdown"></div>
+        <div class="r-prog">
+          <div class="prog-hdr"><span>Overall performance</span><span id="cgpaPct"></span></div>
+          <div class="prog-bg"><div class="prog-fill" id="cgpaBar" style="background:var(--blue)"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PREDICTOR -->
+<section id="predictor" class="wrap">
+  <div class="sec-head">
+    <div class="sec-tag">Step 03</div>
+    <div class="sec-title">CGPA Predictor</div>
+    <div class="sec-desc">Forecast your final CGPA based on expected future performance.</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-bar">
+      <div class="panel-bar-left">
+        <div class="picon violet">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div>
+          <div class="p-title">Future projection</div>
+          <div class="p-sub">Weighted average across current + future credits</div>
+        </div>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="pred-grid">
+        <div class="form-group">
+          <label class="label">Current CGPA</label>
+          <input class="input" type="number" id="predCGPA" placeholder="e.g. 8.5" min="0" max="10" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label class="label">Credits completed</label>
+          <input class="input" type="number" id="predCredits" placeholder="e.g. 80" min="0" />
+        </div>
+        <div class="form-group">
+          <label class="label">Expected future GPA</label>
+          <input class="input" type="number" id="predFutureGPA" placeholder="e.g. 9.0" min="0" max="10" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label class="label">Future credits</label>
+          <input class="input" type="number" id="predFutureCredits" placeholder="e.g. 40" min="0" />
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-lime btn-sm" onclick="predictCGPA()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Predict
+        </button>
+      </div>
+
+      <div class="result" id="predictorResult">
+        <div class="result-top vt">
+          <div>
+            <div class="r-label">Predicted CGPA</div>
+            <div class="r-value violet" id="predictedValue">—</div>
+          </div>
+          <div style="text-align:right">
+            <div class="r-meta" id="predictedChange"></div>
+            <div class="r-rating" style="color:var(--violet)" id="predictedRating"></div>
+          </div>
+        </div>
+        <div class="r-prog">
+          <div class="prog-hdr"><span>Projected performance</span><span id="predictedPct"></span></div>
+          <div class="prog-bg"><div class="prog-fill" id="predictedBar" style="background:var(--violet)"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section id="stats" class="wrap">
+  <div class="sec-head">
+    <div class="sec-tag">Dashboard</div>
+    <div class="sec-title">Academic stats</div>
+    <div class="sec-desc">A quick snapshot from everything you've entered.</div>
+  </div>
+  <div class="stats-grid">
+    <div class="scard lime">
+      <div class="scard-icon lime">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <div class="scard-val" id="statCGPA">—</div>
+      <div class="scard-label">Current CGPA</div>
+      <div class="scard-sub" id="statCGPADelta">Enter semesters to compute</div>
+    </div>
+    <div class="scard blue">
+      <div class="scard-icon blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      </div>
+      <div class="scard-val" id="statHighest">—</div>
+      <div class="scard-label">Highest SGPA</div>
+      <div class="scard-sub" id="statHighestDelta">Best semester</div>
+    </div>
+    <div class="scard violet">
+      <div class="scard-icon violet">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </div>
+      <div class="scard-val" id="statAvg">—</div>
+      <div class="scard-label">Average SGPA</div>
+      <div class="scard-sub" id="statAvgDelta">Mean across semesters</div>
+    </div>
+    <div class="scard amber">
+      <div class="scard-icon amber">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <div class="scard-val" id="statSems">0</div>
+      <div class="scard-label">Semesters</div>
+      <div class="scard-sub" id="statSemsCredits">0 credits estimated</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="foot-inner">
+    <div class="foot-l">Built for SRM KTR &nbsp;·&nbsp; <a href="https://github.com" target="_blank" rel="noopener">GitHub</a></div>
+    <div class="foot-r">
+      <a href="https://github.com" target="_blank" rel="noopener" class="foot-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+        Source
+      </a>
+      <span class="ver">v2.1</span>
+    </div>
+  </div>
+</footer>
+
+<div id="toast"></div>
+
+<script>
+const GRADE_MAP = { 'O':10,'A+':9,'A':8,'B+':7,'B':6,'C':5,'F':0 };
+const GRADES    = ['O','A+','A','B+','B','C','F'];
+
+function getRating(gpa) {
+  if (gpa >= 9.5) return 'Outstanding 🏆';
+  if (gpa >= 9)   return 'Excellent';
+  if (gpa >= 8)   return 'Very Good';
+  if (gpa >= 7)   return 'Good';
+  if (gpa >= 6)   return 'Average';
+  if (gpa >= 5)   return 'Pass';
+  return 'Needs Improvement';
+}
+
+/* TOAST */
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  setTimeout(() => t.classList.remove('on'), 2200);
+}
+
+/* ESCAPE */
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── SUBJECTS (SGPA) ── */
+let subjects = [], subId = 0;
+
+function addSubject(name='', credits=3, grade='O') {
+  subjects.push({ id: ++subId, name, credits, grade });
+  renderSubjects();
+}
+function removeSubject(id) {
+  subjects = subjects.filter(s => s.id !== id);
+  renderSubjects();
+  if (!subjects.length) document.getElementById('sgpaResult').classList.remove('on');
+}
+function updateSubject(id, field, val) {
+  const s = subjects.find(s => s.id === id);
+  if (s) s[field] = field === 'credits' ? (parseFloat(val)||0) : val;
+}
+function gradeOpts(sel) {
+  return GRADES.map(g => `<option${g===sel?' selected':''}>${g}</option>`).join('');
+}
+function renderSubjects() {
+  const el = document.getElementById('subjectList');
+  if (!subjects.length) {
+    el.innerHTML = `<div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+      <p>No subjects yet — add one below.</p>
+    </div>`;
+    return;
+  }
+  el.innerHTML = subjects.map(s => `
+    <div class="subject-row">
+      <input class="input" type="text" value="${esc(s.name)}" placeholder="e.g. Engineering Maths"
+        oninput="updateSubject(${s.id},'name',this.value)" />
+      <input class="input" type="number" value="${s.credits}" min="1" max="6" step="1"
+        oninput="updateSubject(${s.id},'credits',this.value)" style="text-align:center" />
+      <select class="select" onchange="updateSubject(${s.id},'grade',this.value)">${gradeOpts(s.grade)}</select>
+      <button class="rm-btn" onclick="removeSubject(${s.id})" aria-label="Remove">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>`).join('');
+}
+
+function calculateSGPA() {
+  if (!subjects.length) { toast('Add at least one subject.'); return; }
+  let weighted = 0, total = 0;
+  subjects.forEach(s => { weighted += GRADE_MAP[s.grade] * s.credits; total += s.credits; });
+  if (!total) { toast('Credits cannot all be zero.'); return; }
+  const sgpa = weighted / total;
+  const pct  = (sgpa/10*100).toFixed(1);
+
+  document.getElementById('sgpaValue').textContent   = sgpa.toFixed(2);
+  document.getElementById('sgpaCredits').textContent = `${total} credits`;
+  document.getElementById('sgpaRating').textContent  = getRating(sgpa);
+  document.getElementById('sgpaPct').textContent     = pct + '%';
+  document.getElementById('sgpaBar').style.width     = pct + '%';
+
+  const rows = subjects.map(s => {
+    const gp = GRADE_MAP[s.grade];
+    return `<div class="bd-row">
+      <span class="bd-name">${esc(s.name||'Unnamed')}</span>
+      <span class="bd-pts">${gp}</span>
+      <div class="bd-bar-w"><div class="bd-bar-f" style="width:${(gp/10*100).toFixed(0)}%"></div></div>
+      <span class="bd-cred">${s.credits} cr</span>
+    </div>`;
+  }).join('');
+  document.getElementById('sgpaBreakdown').innerHTML = `<div class="r-bd-title">Subject breakdown</div>${rows}`;
+  document.getElementById('sgpaResult').classList.add('on');
+
+  document.getElementById('heroSGPA').textContent        = sgpa.toFixed(2);
+  document.getElementById('heroSGPABar').style.width     = pct + '%';
+  updateStats();
+  toast(`SGPA: ${sgpa.toFixed(2)}`);
+}
+
+function clearSGPA() {
+  subjects = [];
+  renderSubjects();
+  document.getElementById('sgpaResult').classList.remove('on');
+}
+
+/* ── SEMESTERS (CGPA) ── */
+let semesters = [], semId = 0;
+
+function addSemester(note='', sgpa='') {
+  const id = ++semId;
+  semesters.push({ id, num: semesters.length + 1, note, sgpa });
+  renderSemesters();
+}
+function removeSemester(id) {
+  semesters = semesters.filter(s => s.id !== id);
+  semesters.forEach((s,i) => s.num = i+1);
+  renderSemesters();
+  if (!semesters.length) document.getElementById('cgpaResult').classList.remove('on');
+}
+function updateSemester(id, field, val) {
+  const s = semesters.find(s => s.id === id);
+  if (s) s[field] = val;
+}
+function renderSemesters() {
+  const el = document.getElementById('semesterList');
+  if (!semesters.length) {
+    el.innerHTML = `<div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <p>No semesters yet — add one below.</p>
+    </div>`;
+    return;
+  }
+  el.innerHTML = semesters.map(s => `
+    <div class="semester-row">
+      <div class="sem-label">Sem ${s.num}</div>
+      <input class="input" type="text" value="${esc(s.note)}" placeholder="Optional note"
+        oninput="updateSemester(${s.id},'note',this.value)" />
+      <input class="input" type="number" value="${s.sgpa}" placeholder="0.00" min="0" max="10" step="0.01"
+        oninput="updateSemester(${s.id},'sgpa',this.value)" style="text-align:center" />
+      <button class="rm-btn" onclick="removeSemester(${s.id})" aria-label="Remove">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>`).join('');
+}
+
+function calculateCGPA() {
+  if (!semesters.length) { toast('Add at least one semester.'); return; }
+  const valid = semesters.filter(s => s.sgpa !== '' && !isNaN(parseFloat(s.sgpa)));
+  if (!valid.length) { toast('Enter SGPA for at least one semester.'); return; }
+  const cgpa = valid.reduce((a,s) => a + parseFloat(s.sgpa), 0) / valid.length;
+  const pct  = (cgpa/10*100).toFixed(1);
+  const top  = Math.max(...valid.map(s=>parseFloat(s.sgpa)));
+
+  document.getElementById('cgpaValue').textContent    = cgpa.toFixed(2);
+  document.getElementById('cgpaSemesters').textContent= `${valid.length} semester${valid.length>1?'s':''}`;
+  document.getElementById('cgpaRating').textContent   = getRating(cgpa);
+  document.getElementById('cgpaPct').textContent      = pct + '%';
+  document.getElementById('cgpaBar').style.width      = pct + '%';
+
+  const rows = valid.map(s => {
+    const v = parseFloat(s.sgpa);
+    return `<div class="bd-row">
+      <span class="bd-name">Sem ${s.num}${s.note?' · '+esc(s.note):''}</span>
+      <span class="bd-pts">${v.toFixed(2)}</span>
+      <div class="bd-bar-w"><div class="bd-bar-f" style="width:${(v/10*100).toFixed(0)}%;${v===top?'background:var(--green)':'background:var(--blue)'}"></div></div>
+      <span class="bd-cred">${v===top?'★ Best':''}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('cgpaBreakdown').innerHTML = `<div class="r-bd-title">Semester breakdown</div>${rows}`;
+  document.getElementById('cgpaResult').classList.add('on');
+
+  document.getElementById('heroCGPA').textContent    = cgpa.toFixed(2);
+  document.getElementById('heroCGPABar').style.width = pct + '%';
+  updateStats();
+  toast(`CGPA: ${cgpa.toFixed(2)}`);
+}
+
+function clearCGPA() {
+  semesters = []; semId = 0;
+  renderSemesters();
+  document.getElementById('cgpaResult').classList.remove('on');
+  updateStats();
+}
+
+/* ── PREDICTOR ── */
+function predictCGPA() {
+  const c  = parseFloat(document.getElementById('predCGPA').value);
+  const cc = parseFloat(document.getElementById('predCredits').value);
+  const fg = parseFloat(document.getElementById('predFutureGPA').value);
+  const fc = parseFloat(document.getElementById('predFutureCredits').value);
+  if ([c,cc,fg,fc].some(isNaN)) { toast('Fill in all four fields.'); return; }
+  if (c<0||c>10||fg<0||fg>10)   { toast('GPA values must be 0–10.'); return; }
+  const predicted = ((c*cc)+(fg*fc))/(cc+fc);
+  const diff = predicted - c;
+  const pct  = (predicted/10*100).toFixed(1);
+
+  document.getElementById('predictedValue').textContent  = predicted.toFixed(2);
+  document.getElementById('predictedChange').textContent = (diff>=0?'▲ +':'▼ ') + diff.toFixed(2) + ' vs current';
+  document.getElementById('predictedRating').textContent = getRating(predicted);
+  document.getElementById('predictedPct').textContent    = pct + '%';
+  document.getElementById('predictedBar').style.width    = pct + '%';
+  document.getElementById('predictorResult').classList.add('on');
+  toast(`Predicted: ${predicted.toFixed(2)}`);
+}
+
+/* ── STATS ── */
+function updateStats() {
+  const valid = semesters.filter(s => s.sgpa!==''&&!isNaN(parseFloat(s.sgpa)));
+  const n = valid.length;
+  if (!n) {
+    ['statCGPA','statHighest','statAvg'].forEach(id => document.getElementById(id).textContent='—');
+    document.getElementById('statSems').textContent = '0';
+    document.getElementById('statSemsCredits').textContent = '0 credits estimated';
+    document.getElementById('statCGPADelta').textContent = 'Enter semesters to compute';
+    document.getElementById('statHighestDelta').textContent = 'Best semester';
+    document.getElementById('statAvgDelta').textContent = 'Mean across semesters';
+    return;
+  }
+  const vals    = valid.map(s=>parseFloat(s.sgpa));
+  const cgpa    = vals.reduce((a,b)=>a+b,0)/n;
+  const highest = Math.max(...vals);
+  document.getElementById('statCGPA').textContent    = cgpa.toFixed(2);
+  document.getElementById('statHighest').textContent = highest.toFixed(2);
+  document.getElementById('statAvg').textContent     = cgpa.toFixed(2);
+  document.getElementById('statSems').textContent    = n;
+  document.getElementById('statSemsCredits').textContent = `~${n*20} credits estimated`;
+  document.getElementById('statCGPADelta').textContent   = getRating(cgpa);
+  document.getElementById('statHighestDelta').textContent= `Semester ${valid[vals.indexOf(highest)].num}`;
+  document.getElementById('statAvgDelta').textContent    = `${n} semester${n>1?'s':''} on record`;
+  document.getElementById('heroCredits').textContent = n * 20;
+  document.getElementById('heroCreditsBar').style.width = Math.min(n/8*100,100)+'%';
+}
+
+/* ── INIT ── */
+(function() {
+  addSubject('Engineering Mathematics I', 4, 'O');
+  addSubject('Engineering Physics', 3, 'A+');
+  addSubject('Problem Solving & Programming', 4, 'A+');
+  addSubject('English for Communication', 2, 'O');
+  addSubject('Engineering Chemistry', 3, 'A');
+  addSemester('First semester',  '9.10');
+  addSemester('Second semester', '8.70');
+  addSemester('Third semester',  '9.00');
+})();
+</script>
+</body>
+</html>
